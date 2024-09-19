@@ -99,6 +99,6 @@ async function monitorNewPools(interval) {
     }, interval);
 }
 
-monitorNewPools(5000);
+monitorNewPools(50_000);
 
 bot.launch();
