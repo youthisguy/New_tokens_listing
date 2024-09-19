@@ -18,40 +18,8 @@ expressApp.get("/", (req, res) => {
 
 bot.command("start", (ctx) => {
     console.log(ctx.from);
-    bot.telegram.sendMessage(
-        ctx.chat.id,
-        "Hello there! Welcome to the Code Capsules telegram bot.nI respond to /ethereum. Please try it",
-        {}
-    );
 });
 
-bot.command("ethereum", (ctx) => {
-    var rate;
-    console.log(ctx.from);
-    axios
-        .get(
-            `https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd`
-        )
-        .then((response) => {
-            console.log(response.data);
-            rate = response.data.ethereum;
-            const message = `Hello, today the ethereum price is ${rate.usd} USD`;
-
-            // Send message to the user
-            bot.telegram.sendMessage(ctx.chat.id, message, {});
-
-            // Send message to your Telegram channel (replace YOUR_CHANNEL_ID with your actual channel ID)
-            const channelId = process.env.CHANNEL_ID || "-1002421092329";
-            bot.telegram.sendMessage(
-                channelId,
-                `Ethereum price update: ${rate.usd} USD`,
-                {}
-            );
-        })
-        .catch((error) => {
-            console.error("Error fetching Ethereum price:", error);
-        });
-});
 
 // Function to monitor new pools
 async function monitorNewPools(interval) {
@@ -66,16 +34,25 @@ async function monitorNewPools(interval) {
                 return poolCreatedAt > now; // Only future pools
             });
 
-            if (
-                filteredData.length > 0 &&
-                JSON.stringify(filteredData) !== JSON.stringify(previousData)
-            ) {
-                const newPool = filteredData[0]; // Get the first new pool
-
+            if (filteredData.length > 0) {
+                const newPool = filteredData[0]; 
+                  // Determine the URL based on base_dex
+                  let swapUrl = '';
+                  if (newPool.base_dex.toUpperCase() === 'DEDUST') {
+                      swapUrl = `https://dedust.io/swap/TON/${newPool.base_token_address}`;
+                  } else {
+                      swapUrl = 'https://app.ston.fi/swap';
+                  }
+                const isSamePool = previousData.some(
+                    (prevItem) => prevItem.pool_address === newPool.pool_address
+                );
+                if (isSamePool) {
+                    console.log("Same pool data, skip...");
+                    return;
+                }
                 const messageContent = `
-                🔔 NEW TOKEN DETECTED! 🔔\n\n💎 Name: ${newPool.name.replace("0.25%","")}\n📍 Pool Address: ${newPool.pool_address
-                    }\n💹 DEX: ${newPool.base_dex.toUpperCase()}\n💰 Market Cap: $${newPool.pool_marketcap
-                    }\n💸 Price (USD): $${Number(newPool.base_token_price_usd).toPrecision(
+                🔔 NEW TOKEN DETECTED! 🔔\n\n|- Name: ${newPool.name.replace("0.25%","")}\n\n🪙 CA: ${newPool.base_token_address}\n⚖️ Pool Address: ${newPool.pool_address
+                    }\n\n💹 DEX: ${newPool.base_dex.toUpperCase()}\n💸 Price (USD): $${Number(newPool.base_token_price_usd).toPrecision(
                         4
                     )}\n\n📊 Liquidity (USD): $${Number(newPool.reserve_in_usd).toFixed(
                         2
@@ -93,10 +70,20 @@ async function monitorNewPools(interval) {
                         inline_keyboard: [
                             [
                                 {
-                                    text: "More Info 🔎", // The text displayed on the button
-                                    url: `https://www.geckoterminal.com/ton/pools/${newPool.poolAddress}`
+                                    text: "More Info 🔎", 
+                                    url: `https://www.geckoterminal.com/ton/pools/${newPool.pool_address}`
                                 }
-                            ]
+                            ],
+                            [
+                                {
+                                    text: "Scan Token ⚠️", 
+                                    url: `https://t.me/@stonks_sniper_bot?start=${newPool.base_token_address}`
+                                },
+                                {
+                                    text: "Buy Now 💰", 
+                                    url: swapUrl
+                                },
+                            ],
                         ]
                     }
                 });
@@ -109,9 +96,9 @@ async function monitorNewPools(interval) {
         } catch (error) {
             console.error("Error during pool monitoring:", error);
         }
-    }, interval); // Runs every `interval` milliseconds
+    }, interval);
 }
 
-monitorNewPools(5000); // 300,000 ms = 5 minutes
+monitorNewPools(5000);
 
 bot.launch();
