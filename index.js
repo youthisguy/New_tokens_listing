@@ -63,7 +63,7 @@ async function monitorNewPools(interval) {
             const currentData = await fetchData();
             const filteredData = currentData.filter((item) => {
                 const poolCreatedAt = new Date(item.pool_created_at);
-                return poolCreatedAt < now; // Only future pools
+                return poolCreatedAt > now; // Only future pools
             });
 
             if (
