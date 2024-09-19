@@ -20,6 +20,9 @@ bot.command("start", (ctx) => {
     console.log(ctx.from);
 });
 
+expressApp.use(bot.webhookCallback('/secret-path'))
+bot.telegram.setWebhook('https://new-tokens-listing.onrender.com/secret-path')
+
 
 // Function to monitor new pools
 async function monitorNewPools(interval) {
@@ -101,4 +104,6 @@ async function monitorNewPools(interval) {
 
 monitorNewPools(50_000);
 
-bot.launch();
+// bot.launch();
+
+expressApp.listen(port, () => console.log(`Listening on ${port}`));
